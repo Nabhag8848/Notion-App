@@ -10,6 +10,7 @@ import {
     SlashCommandContext,
 } from "@rocket.chat/apps-engine/definition/slashcommands";
 import { NotionApp } from "../NotionApp";
+import { IUser } from "@rocket.chat/apps-engine/definition/users";
 
 export interface IButton {
     text: string;
@@ -37,10 +38,10 @@ export class NotionCommand implements ISlashCommand {
 
         switch (argument) {
             case "login": {
-                const user = context.getSender();
+                const user = (await read.getUserReader().getAppUser()) as IUser;
                 const url = await this.app
                     .getOAuth2ClientInstance()
-                    .getUserAuthorizationUrl(user);
+                    .getUserAuthorizationUrl(context.getSender());
 
                 const button: IButton = {
                     text: "Notion Login",
@@ -76,7 +77,73 @@ export class NotionCommand implements ISlashCommand {
 
                 await modify
                     .getNotifier()
-                    .notifyUser(user, builder.getMessage());
+                    .notifyUser(context.getSender(), builder.getMessage());
+                break;
+            }
+            case "check-auth": {
+                const user = (await read.getUserReader().getAppUser()) as IUser;
+                const token = await this.app
+                    .getOAuth2ClientInstance()
+                    .getAccessTokenForUser(context.getSender());
+
+                if (token) {
+                    const builder = await modify.getCreator().startMessage({
+                        sender: user,
+                        room: (await read
+                            .getRoomReader()
+                            .getByName("general")) as IRoom,
+                        text: "Is already loggedin",
+                    });
+                    await modify
+                        .getNotifier()
+                        .notifyUser(context.getSender(), builder.getMessage());
+                } else {
+                    const builder = await modify.getCreator().startMessage({
+                        sender: user,
+                        room: (await read
+                            .getRoomReader()
+                            .getByName("general")) as IRoom,
+                        text: "Not Logged In",
+                    });
+                    await modify
+                        .getNotifier()
+                        .notifyUser(context.getSender(), builder.getMessage());
+                }
+
+                break;
+            }
+
+            case "logout": {
+                const user = (await read.getUserReader().getAppUser()) as IUser;
+                const isRevoked = await this.app
+                    .getOAuth2ClientInstance()
+                    .revokeUserAccessToken(context.getSender(), persis);
+
+                if (isRevoked) {
+                    const builder = await modify.getCreator().startMessage({
+                        sender: user,
+                        room: (await read
+                            .getRoomReader()
+                            .getByName("general")) as IRoom,
+                        text: "Revoked",
+                    });
+                    await modify
+                        .getNotifier()
+                        .notifyUser(context.getSender(), builder.getMessage());
+                } else {
+                    const builder = await modify.getCreator().startMessage({
+                        sender: user,
+                        room: (await read
+                            .getRoomReader()
+                            .getByName("general")) as IRoom,
+                        text: "Not Revoked",
+                    });
+                    await modify
+                        .getNotifier()
+                        .notifyUser(context.getSender(), builder.getMessage());
+                }
+
+                break;
             }
             default: {
             }

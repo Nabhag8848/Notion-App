@@ -53,12 +53,14 @@ export class NotionApp extends App {
         http: IHttp,
         persis: IPersistence
     ) {
+        const bot = (await read.getUserReader().getAppUser()) as IUser;
+
         if (token) {
             const builder = await modify.getCreator().startMessage({
                 room: (await read
                     .getRoomReader()
                     .getByName("general")) as IRoom,
-                sender: user,
+                sender: bot,
                 text: "Succesfully logged in!",
             });
 
@@ -68,7 +70,7 @@ export class NotionApp extends App {
                 room: (await read
                     .getRoomReader()
                     .getByName("general")) as IRoom,
-                sender: user,
+                sender: bot,
                 text: "Authorization Failed",
             });
 
