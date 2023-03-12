@@ -11,6 +11,8 @@ import {
 } from "@rocket.chat/apps-engine/definition/slashcommands";
 import { NotionApp } from "../NotionApp";
 import { IUser } from "@rocket.chat/apps-engine/definition/users";
+import { removeToken } from "../persistance/auth";
+import { CommandParameter } from "../enums/Parameter";
 
 export interface IButton {
     text: string;
@@ -33,11 +35,10 @@ export class NotionCommand implements ISlashCommand {
         http: IHttp,
         persis: IPersistence
     ): Promise<void> {
-        //https://stackoverflow.com/questions/48519484/uncaught-syntaxerror-unexpected-eval-or-arguments-in-strict-mode-window-gtag
         const argument = context.getArguments()[0];
 
         switch (argument) {
-            case "login": {
+            case CommandParameter.LOGIN: {
                 const user = (await read.getUserReader().getAppUser()) as IUser;
                 const url = await this.app
                     .getOAuth2ClientInstance()
@@ -80,7 +81,7 @@ export class NotionCommand implements ISlashCommand {
                     .notifyUser(context.getSender(), builder.getMessage());
                 break;
             }
-            case "check-auth": {
+            case CommandParameter.TEST: {
                 const user = (await read.getUserReader().getAppUser()) as IUser;
                 const token = await this.app
                     .getOAuth2ClientInstance()
@@ -113,11 +114,13 @@ export class NotionCommand implements ISlashCommand {
                 break;
             }
 
-            case "logout": {
+            case CommandParameter.LOGOUT: {
                 const user = (await read.getUserReader().getAppUser()) as IUser;
-                const isRevoked = await this.app
-                    .getOAuth2ClientInstance()
-                    .revokeUserAccessToken(context.getSender(), persis);
+                const isRevoked = await removeToken({
+                    userId: user.id,
+                    persis,
+                    config: this.app.OAuth2Config,
+                });
 
                 if (isRevoked) {
                     const builder = await modify.getCreator().startMessage({
@@ -146,6 +149,7 @@ export class NotionCommand implements ISlashCommand {
                 break;
             }
             default: {
+                
             }
         }
     }
