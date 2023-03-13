@@ -11,5 +11,6 @@
     "name": "Notion",
     "nameSlug": "notion",
     "classFile": "NotionApp.ts",
-    "description": "Create pages and receive notifications inside Rocket.Chat"
+    "description": "Create pages and receive notifications inside Rocket.Chat",
+    "implements": []
 }
